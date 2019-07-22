@@ -1,0 +1,295 @@
+#### library 설치 ####
+library(dplyr)
+library(tidyr)
+library(reshape2)
+library(stringr)
+
+
+#### 호기별로 데이터 모으기 ####
+# 차종 : DN8
+# 공정 : ICT
+
+# 경로 지정
+setwd("D:/workspace/DN8/IFT/DVRS_6호기_201906")
+dir <- c("D:/workspace/DN8/IFT/DVRS_6호기_201906")
+
+
+# 폴더 내 읽어올 파일 조건 설정
+file_list <- list.files(dir)
+file_list <- subset(file_list, 
+                    substr(file_list, 1, 2) == "UD") # 파일명 UD로 시작하는것만
+file_cnt  <- length(file_list)
+
+
+# 호기 별 temp table 생성 
+#  L meta table, raw data table
+data_IFT1 <- data.frame(matrix(nrow=0, ncol=2)) # raw data
+meta_IFT1 <- data.frame(matrix(nrow=0, ncol=2)) # meta data
+
+
+# raw data 모으기
+for(i in 1:file_cnt){
+  
+  temp <- read.table(file_list[i],
+                     sep=";", header=FALSE, skip=5,
+                     fill=TRUE)     # 결측치를 NA 로 채우기
+  
+  temp$new <- file_list[i]   # 파일명(바코드) 저장
+  temp$load <- dir           # 저장경로(호기) 저장
+  
+  data_IFT1 <- rbind(data_IFT1, temp) 
+  
+  print(i)
+  
+}
+
+
+
+# meta data 가져오기
+for(i in 1:file_cnt){
+  
+  tmp <- read.csv(file_list[i], header=FALSE, skip=1, nrows=2)
+  tmp$filename <- file_list[i]
+  
+  tmp <- separate(tmp, V1, into=c("v1", "v2"), sep="=")
+  tmp <- dcast(tmp, filename ~ v1, value.var="v2")
+  
+  meta_IFT1 <- rbind(meta_IFT1, tmp)
+  
+  print(i)
+  
+}
+
+
+# csv 파일로 저장해놓기
+write.csv(data_IFT1, "D:/workspace/DN8/dataset/IFT_31_5_20190517.csv")
+write.csv(meta_IFT1, "D:/workspace/DN8/dataset/IFT_31_5_META_20190517.csv")
+
+
+
+# 메타데이터 병합
+colnames(data_IFT1)[9] <- "filename"
+data_IFT1 <- merge(data_IFT1, meta_IFT1, 
+                   by = 'filename',
+                   all.x = TRUE)
+
+
+#### 테이블 병합 ####
+# 전체 테이블 병합
+# IFT(DVRS) 6월 데이터(all)
+IFT_DVRS <- rbind(data_IFT1, data_IFT2, data_IFT3, data_IFT4, data_IFT5, data_IFT6)
+
+str(IFT_DVRS)
+
+# 변수명 정의 
+colnames(IFT_DVRS) <- c("id", "code1", "code2", "setting_value", "value",
+                        "unit", "okng", "na", "filename", "load")
+
+
+
+
+#### 데이터 cleaning ####
+
+# code1 공백 채우기
+system.time({
+  for(i in 1:nrow(IFT_DVRS)){
+    if(IFT_DVRS[i, 'code1'] == ""){
+       IFT_DVRS[i, 'code1'] <- IFT_DVRS[i-1, 'code1']
+    }
+  }
+  if(i%%1000 == 0){print(i)}
+})
+
+
+
+# 정제 대상 테이블 생성
+data <- IFT_DVRS
+
+
+# 파일명 확장자 제거
+data$filename <- substr(data$filename, 1, 35)
+
+# 데이터셋 컬럼 순서 변경
+data <- data[,c(10,9,1:8)] 
+
+data$filename_raw <- data$filename
+
+
+## 바코드 재정의
+# filename : '-' 기준으로 분리
+data    <- separate(data, filename, into=c("filename", "OX"), sep="-") 
+
+# OX : OK/NG 여부
+data$OX <- as.factor(data$OX)
+data    <- separate(data, filename, into=c("filename1", "filename2"), sep="_")
+data$filename1 <- as.factor(data$filename1)
+data$filename2 <- as.factor(data$filename2)
+
+# code 불러오기
+code1 <- read.csv("S:/정보라/DN8/IFT_code1.csv", header=T)
+code2 <- read.csv("S:/정보라/DN8/IFT_code2.csv", header=T, stringsAsFactors = TRUE)
+
+code2$code2_newcode <- c("01", "02", "03", "04", "05", "06", "07", "08", "09",
+                         10:60)
+code2$code2_newcode <- as.factor(code2$code2_newcode)
+
+
+# code명과 code값 매핑시키기
+test <- merge(data, code1, by="code1", all.x=TRUE)
+test <- merge(test, code2, by="code2", all.x=TRUE)
+
+test$code <- paste(test$code1_newcode, test$code2_newcode, sep="")
+
+# 필요한 변수만 추출
+test <- test[,c('filename_raw','load', 'id', 'code', 'value', 'okng')]
+
+# code 없는 row 제거
+test$code <- as.character(test$code)
+test <- filter(test, !grepl('NA', code)) 
+
+# 임시 key 정의 : 호기_날짜_바코드
+test$key <- paste(substr(test$load, 27, 30), 
+                  substr(test$load, 41, 50), 
+                  test$filename_raw, 
+                  sep="-")
+
+
+## key 별 code 1개씩만 추출
+##  L filename_raw, code 별로 수행된 id 넘버링
+# filename, code, id 정렬
+test <- test[order(test$filename_raw, test$code, test$id),]
+
+# 넘버링 변수 추가
+test <- test %>%
+  group_by(key, code) %>% 
+  mutate(numbering = order(order(key)))
+
+# 마지막으로 수행된 id수만 추출
+test <- test %>% filter(numbering == 1)
+
+
+
+#### 분석 dataset 형태로 변형하기 ####
+
+test$value <- as.character(test$value) # value값 문자형으로 변경
+
+# 검사코드 별 측정값 데이터
+ex1  <- test[,c('key', 'code', 'value')]
+tmp1 <- dcast(ex1, key ~ code)
+
+# 검사코드 별 OK/NG 데이터
+ex2 <- test[,c('key', 'code', 'okng')]
+ex2$okng <- as.character(ex2$okng)
+tmp2 <- dcast(ex2, key ~ code)
+
+colnames(tmp2) <- paste(colnames(tmp2), "result", sep="_")
+
+# 검사코드 별 측정값, OK/NG 데이터 병합
+# 정제한 테이블명 : dataset
+dataset <- data.frame()
+dataset <- cbind(tmp1, tmp2)
+
+# OK/NG, 바코드 변수 생성
+dataset$OK_NG <- substr(dataset$key, 51, 51)
+dataset$BARCODE <- substr(dataset$key, 22, 37)
+dataset <- dataset[,-103]
+
+
+## 검사 여러번 수행한 바코드 처리
+##  L 마지막 OX 결과에 따라 코드 부여
+##  L 1 : 양품 / 2 : 진성불량  / 3: 가성불량 
+
+tb <- dataset[,c('BARCODE', 'OK_NG')]
+
+# 값의 공백 제거
+for(i in 1:ncol(tb)){
+  tb[,i] <- str_trim(tb[,i], side=c("both", "left", "right"))}
+
+# OX 값 row to column 변형
+tmp <- do.call(rbind, lapply(split(tb, tb$BARCODE),
+                             function(aa){
+                               aa$val2 <- paste(aa$OK_NG, collapse="")
+                               
+                               return(aa)
+                             }))
+row.names(tmp) <- NULL
+tmp$length <- nchar(tmp$val2)
+
+
+# 1번 검사한 테이블
+tmp_1 <- subset(tmp, tmp$length == 1)
+
+# 2회 이상 검사한 테이블
+tmp_2 <- subset(tmp, tmp$length > 1) 
+tmp_2$OX_final <- str_sub(tmp_2$val2, -1) # 마지막 검사 결과
+
+
+
+## O/X -> 1/2/3 로 변환 ##
+
+# 1번 검사한 테이블
+tmp_1$ON <- c()
+
+for(i in 1:nrow(tmp_1)){
+  ifelse(tmp_1$val2[i] == "O", 
+         tmp_1$ON[i] <- "1", 
+         tmp_1$ON[i] <- "2")
+}
+
+
+# 2번 이상 검사한 테이블
+#  L 가성불량(3) : 검사결과에 X가 하나라도 있고 최종적으로 O인 경우
+#  L 진성불량(2) : 검사결과에 X가 하나라도 있고 최종적으로 X인 경우
+#  L 양품(1)     : 검사결과에 X가 없는 경우
+
+tmp_2$ON <- c()
+
+for(i in 1:nrow(tmp_2)){
+  
+  if(grepl('X', tmp_2$val2[i]) && tmp_2$OX_final[i] == "O"){
+    tmp_2$ON[i] <- "3"
+    
+    } else if(grepl('X', tmp_2$val2[i]) && tmp_2$OX_final[i] == "X"){
+    tmp_2$ON[i] <- "2"
+    
+    } else if(!grepl('X', tmp_2$val2[i])){
+    tmp_2$ON[i] <- "1"
+    
+    }
+}
+
+
+
+# 테이블 병합
+tmp_1 <- tmp_1[,c('BARCODE', 'ON')]
+tmp_2 <- tmp_2[,c('BARCODE', 'ON')]
+
+ox <- rbind(tmp_1, tmp_2)
+ox_unique <- unique(ox)
+
+
+# dataset에 1/2/3 검사결과 병합
+dataset <- merge(x = dataset,
+                 y = ox_unique,
+                 by = 'BARCODE',
+                 all.X = TRUE)
+
+
+# 열 순서 정리
+dataset <- dataset[,-205]
+colnames(dataset)[205] <- 'OK_NG'
+
+dataset <- dataset[,order(names(dataset))]
+dataset <- dataset[,c(88, 37, 103, 1:36, 38:87, 89:102, 104:205)]
+
+dataset$hogi <- substr(dataset$key, 1, 4)
+dataset$date <- substr(dataset$key, 6, 15)
+
+
+dataset <- dataset[,c(1:3, 206:207, 4:205)]
+dataset <- dataset[,-1]
+
+
+
+# csv 파일로 저장 -끝-
+write.csv(dataset, "D:/workspace/DN8/dataset/IFT(DVRS)_dataset_20190517_v2.csv")
