@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1563777952392.000,
+    "dirty" : false,
+    "encoding" : "CP949",
+    "folds" : "",
+    "hash" : "3985111387",
+    "id" : "FE53D118",
+    "lastKnownWriteTime" : 1563950296,
+    "last_content_update" : 1563950296093,
+    "path" : "S:/DVRS/01_DataMapping.R",
+    "project_path" : "01_DataMapping.R",
+    "properties" : {
+        "cursorPosition" : "110,10",
+        "scrollLine" : "0",
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 4,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

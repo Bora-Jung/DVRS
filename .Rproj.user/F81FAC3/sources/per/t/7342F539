@@ -1,0 +1,25 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1563767881316.000,
+    "dirty" : false,
+    "encoding" : "CP949",
+    "folds" : "",
+    "hash" : "1382831762",
+    "id" : "7342F539",
+    "lastKnownWriteTime" : 1563772571,
+    "last_content_update" : 1563772571427,
+    "path" : "S:/DVRS/01_DataLoading(IFT).R",
+    "project_path" : "01_DataLoading(IFT).R",
+    "properties" : {
+        "cursorPosition" : "155,0",
+        "docOutlineSize" : "149.40192198689172",
+        "docOutlineVisible" : "0",
+        "scrollLine" : "0",
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

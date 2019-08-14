@@ -1,0 +1,135 @@
+### IFT-ICT Barcode mapping
+
+IFT <- read.csv("D:/workspace/DN8/dataset/IFT(DVRS)_dataset_201906.csv", header=T)
+ICT <- read.csv("D:/workspace/DN8/dataset/ICT(DVRS)_dataset_201906.csv", header=T)
+
+
+#2019/05/01 부터 데이터셋 구성
+library(dplyr)
+IFT$date <- as.character(IFT$date)
+IFT <- IFT %>% filter(date > '2019/04/30')
+
+ICT$date <- substr(ICT$key, 12, 19)
+ICT <- ICT %>% filter(date > '2019/04/30')
+IFT <- IFT[,-1]
+ICT <- ICT[,-1]
+
+#IFT 모두 결측치인 컬럼 제거 
+x <- as.data.frame(colSums(is.na(IFT)))
+x$v1 <- row.names(x)
+row.names(x) <- c()
+colnames(x) <- c("na_sum", "colname")
+x2 <- x %>% filter(na_sum == nrow(IFT)) 
+x2 <- as.vector(x$colname)
+for(i in 1:length(x2)){
+  IFT[,x2[i]] <- NULL
+}
+
+#ICT 모두 결측치인 컬럼 제거
+x <- as.data.frame(colSums(is.na(ICT)))
+x$colname <- row.names(x)
+row.names(x) <- c()
+colnames(x) <- c("na_sum", "colname")
+x2 <- x %>% filter(na_sum == 2802)
+x2 <- as.vector(x2$colname)
+for(i in 1:length(x2)){
+  ICT[,x2[i]] <- NULL
+}
+
+#IFT, ICT 각각 컬럼명 앞에 표기
+colnames(IFT) <- paste("IFT_", colnames(IFT), sep="")
+colnames(ICT) <- paste("ICT_", colnames(ICT), sep="")
+
+#code 불러오기
+code <- read.csv("S:/01. 정보라/DN8/IFT_ICT_mapping.csv", header=TRUE)
+colnames(code) <- c("IFT_long", "IFT_Short", "IFT_Result",
+                    "ICT_num", "ICT_long", "ICT_Short", "ICT_Result")
+
+for(i in 1:7){
+  code[,i] <- as.character(code[,i])
+}
+
+library(stringr)
+for(i in 1:7){
+  code[,i] <- str_trim(code[,i], side=c("both", "left", "right"))
+}
+
+IFT$IFT_BARCODE <- as.character(IFT$IFT_BARCODE)
+IFT$IFT_long <- substr(IFT[,'IFT_BARCODE'], 1, 15)
+
+ICT$ICT_key <- as.character(ICT$ICT_key)
+ICT$ICT_Short <- substr(ICT[,'ICT_key'], 1, 8)
+
+
+#코드 병합
+
+install.packages("RODBC")
+library(RODBC)
+
+con <- odbcDriverConnect("DSN=mssql; uid=sa; pwd=!Yura@@")
+
+code <- sqlQuery(con, "SELECT IFTSN, IFTPCBSN, IFTRESULT, SEQ, SN AS ICTSN, PCBSN AS ICTPCBSN, RESULT AS ICTRESULT
+FROM (
+			SELECT SN AS IFTSN, PCBSN AS IFTPCBSN, IFTRESULT, BANSN, SEQ
+			FROM
+			(
+				( SELECT SN, PCBSN, 'OK' AS IFTRESULT FROM MCNIFT ) UNION ALL ( SELECT SN, PCBSN, 'NG' AS IFTRESULT FROM MCNBAD WHERE PCODE LIKE '%IFT%')
+			) AS m
+			JOIN (SELECT WANSN, BANSN, SEQ FROM MATCH_BARCODE) AS b ON m.SN = b. WANSN
+
+	  ) AS ift
+		JOIN 
+		(
+			( SELECT SN, PCBSN, 'OK' AS RESULT FROM MCNICT ) UNION ALL ( SELECT SN, PCBSN, 'NG' AS RESULT FROM MCNBAD WHERE PCODE LIKE '%ICT%')
+	  ) AS ict
+	  
+	  ON ict.SN = ift.BANSN
+	  
+	  ORDER BY ift.IFTSN;
+")
+
+
+colnames(code) <- c("IFT_long", "IFT_Short", "IFT_Result", "SEQ",
+                    "ICT_long", "ICT_Short", "ICT_Result")
+
+for(i in 1:ncol(code)){
+  code[,i] <- str_trim(code[,i], side=c("both", "left", "right"))}
+
+IFT_tmp <- merge(IFT, code,
+             by = "IFT_long", all.x = TRUE) #IFT 코드에 모든코드 병합
+
+tmp2 <- merge(ICT, code,
+              by = "ICT_Short", all.x = TRUE) #ICT 코드에 모든코드 병합
+
+IFT_ICT <- merge(tmp, tmp2,
+                 by="ICT_Short")
+
+colnames(IFT_ICT)
+sum(is.na(IFT_ICT$ICT_Short))
+IFT_ICT <- IFT_ICT %>% filter(!is.na(IFT_ICT$ICT_key))
+
+
+head(colnames(IFT_ICT),10)
+write.csv(IFT_ICT, "D:/workspace/DN8/dataset/IFT_ICT_v2.csv", row.names = FALSE)
+
+
+
+# 코드 중복 제거(unique 값 매핑)
+data.table(ex1)
+ex1$filename <- IFT_DVRS[,'filename']
+
+ex1 <- substr(ex1$filename, 6, 21)
+ex1 <- unique(ex1)
+
+ex2 <- IFT_ICU[,c('filename','load')]
+ex2 <- filter(ex2, !grepl('Report', filename))
+ex2$filename <- substr(ex2$filename, 1, 15)
+
+ex1 <- as.data.frame(ex1)
+ex2 <- as.data.frame(ee)
+
+colnames(ex1) <- "barcode"
+colnames(ex2) <- "barcode"
+
+IFT_barcode <- rbind(ex1, ex2)
+write.csv(IFT_barcode, "S:/정보라/DN8/IFT_barcode.csv")

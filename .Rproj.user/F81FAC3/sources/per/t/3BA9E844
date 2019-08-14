@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1563767912347.000,
+    "dirty" : false,
+    "encoding" : "CP949",
+    "folds" : "",
+    "hash" : "4031954313",
+    "id" : "3BA9E844",
+    "lastKnownWriteTime" : 1563775728,
+    "last_content_update" : 1563775728139,
+    "path" : "S:/DVRS/01_DataLoading(ICT).R",
+    "project_path" : "01_DataLoading(ICT).R",
+    "properties" : {
+        "cursorPosition" : "147,7",
+        "scrollLine" : "0",
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

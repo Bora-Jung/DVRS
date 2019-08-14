@@ -1,0 +1,69 @@
+dataet <- read.csv("S:/talk3/reflow_ict_ift.csv", header=TRUE)
+
+
+
+# 모든 값 공백 제거
+library(stringr)
+library(dplyr)
+
+for(i in 1:ncol(dataet)){
+  dataet[,i] <- str_trim(dataet[,i], side=c("both", "left", "right"))
+}
+
+
+dataet <- dataet %>% 
+  filter(!is.na(dataet$IFT_key))
+
+n <- as.data.frame(colSums(is.na(dataet)))
+n$colname <- row.names(n)
+colnames(n) <- c("nasum", "colname")
+n_null <- n %>% filter(nasum == nrow(dataet))
+n_null <- as.vector(n_null$colname)
+
+for (i in 1:length(n_null)){
+  dataet[,n_null[i]] <- NULL
+}
+
+dataet <- dataet[,-1]
+dataet <- unique(dataet)
+write.csv(dataet, "D:/workspace/DN8/dataset/IFT_ICT_Reflow_HCT_201906.csv", row.names=FALSE)
+
+ict <- dataet %>% select(starts_with("ICT")) 
+hct <- dataet %>% select(starts_with("HCT")) 
+
+
+## 1개의 값만 있는 컬럼 제거
+c <- as.data.frame(colnames(ict[,1:3000]))
+
+for(i in 1:ncol(ict)) {
+  
+  c$new[i] <- nlevels(as.factor(ict[,i]))
+}
+
+
+one <- c %>% filter(c$new == 1)
+one <- as.vector(one$`colnames(ict[, 1:3000])`)
+
+##
+for (i in 1:length(one)){
+  dataet[,one[i]] <- NULL
+}
+
+
+c <- as.data.frame(colnames(hct[,1:2994]))
+
+for(i in 1:ncol(hct)) {
+  
+  c$new[i] <- nlevels(as.factor(hct[,i]))
+}
+
+one <- c %>% filter(c$new == 1)
+one <- as.vector(one$`colnames(hct[, 1:2994])`)
+
+for (i in 1:length(one)){
+  dataet[,one[i]] <- NULL
+}
+
+write.csv(dataet, "D:/workspace/DN8/dataset/IFT_ICT_Reflow_HCT_201906_rev2.csv", row.names=FALSE)
+
+

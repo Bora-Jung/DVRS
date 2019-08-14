@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1563767926887.000,
+    "dirty" : false,
+    "encoding" : "CP949",
+    "folds" : "",
+    "hash" : "2550990976",
+    "id" : "D571CD47",
+    "lastKnownWriteTime" : 1563779062,
+    "last_content_update" : 1563779062498,
+    "path" : "S:/DVRS/01_DataLoading(HCT).R",
+    "project_path" : "01_DataLoading(HCT).R",
+    "properties" : {
+        "cursorPosition" : "18,12",
+        "scrollLine" : "0",
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 3,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

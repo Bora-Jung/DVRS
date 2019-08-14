@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1563934608283.000,
+    "dirty" : false,
+    "encoding" : "CP949",
+    "folds" : "",
+    "hash" : "3724373459",
+    "id" : "546B39C1",
+    "lastKnownWriteTime" : 1563512432,
+    "last_content_update" : 1563512432,
+    "path" : "S:/01. 정보라/DN8/데이터셋 만들기/IFT_ICT_mappingcode.R",
+    "project_path" : null,
+    "properties" : {
+        "cursorPosition" : "13,15",
+        "scrollLine" : "0"
+    },
+    "relative_order" : 7,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

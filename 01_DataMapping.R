@@ -137,6 +137,12 @@ write.csv(IFT_ICT_HCT, "D:/workspace/DN8/dataset/IFT_ICT_HCT_201906.csv", row.na
 
 
 
+IFT_ICT_HCT <- read.csv("D:/workspace/DN8/dataset/IFT_ICT_HCT.csv", header=TRUE)
+unique(IFT_ICT_HCT$ICT_Short)
+
+
+
+
 
 #### 코드 중복 제거(unique 값 매핑) ####
 data.table(ex1)
